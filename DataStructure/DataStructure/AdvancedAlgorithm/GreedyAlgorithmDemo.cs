@@ -1,0 +1,411 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
+
+namespace DataStructure.AdvancedAlgorithm
+{
+    public class GreedyAlgorithmDemo
+    {
+        public static void Show()
+        {
+            #region 找零问题
+            {
+                double origAmount = 0.63;//原始总金额
+                double toChange = origAmount;
+                double remainAmount = 0.0;
+                int[] coins = new int[4];//4种面值 1-5-10-25
+                MakeChange(origAmount, remainAmount, coins);
+            }
+            #endregion
+
+            #region 霍夫曼
+            {
+                string input;
+                Console.Write("请输入一个字符串: ");
+                input = Console.ReadLine();
+                TreeList treeList = new TreeList(input);
+                for (int i = 0; i < input.Length; i++)
+                {
+                    treeList.AddSign(input[i].ToString());//链表--计数
+                }
+
+                treeList.SortTree();
+                while (treeList.Length() > 1)
+                    treeList.MergeTree();
+                TreeList.MakeKey(treeList.RemoveTree(), "");
+                string newStr = TreeList.Translate(input);
+                string[] signTable = treeList.GetSignTable();
+                string[] keyTable = treeList.GetKeyTable();
+                for (int i = 0; i <= signTable.Length - 1; i++)
+                    Console.WriteLine(signTable[i] + ": " + keyTable[i]);
+
+                Console.WriteLine("字符串长度 " + input.Length * 16 + " bits.");
+                Console.WriteLine("压缩后长度 " + newStr.Length + " bits long.");
+                Console.WriteLine("压缩后编码:" + newStr);
+            }
+            #endregion
+
+            #region MyRegion
+            {
+                Carpet c1 = new Carpet("Frieze", 1.75F, 12);
+                Carpet c2 = new Carpet("Saxony", 1.82F, 9);
+                Carpet c3 = new Carpet("Shag", 1.5F, 13);
+                Carpet c4 = new Carpet("Loop", 1.77F, 10);
+                ArrayList rugs = new ArrayList();
+                rugs.Add(c1);
+                rugs.Add(c2);
+                rugs.Add(c3);
+                rugs.Add(c4);
+                rugs.Sort();
+                Knapsack k = new Knapsack(25);
+                k.FillSack(rugs);
+                Console.WriteLine(k.GetItems());
+            }
+            #endregion
+        }
+
+        #region 找零钱问题
+        public static void MakeChange(double origAmount, double remainAmount, int[] coins)
+        {
+            if ((origAmount % 0.25) < origAmount)
+            {
+                coins[3] = (int)(origAmount / 0.25);
+                remainAmount = origAmount % 0.25;
+                origAmount = remainAmount;
+            }
+            if ((origAmount % 0.1) < origAmount)
+            {
+                coins[2] = (int)(origAmount / 0.1);
+                remainAmount = origAmount % 0.1;
+                origAmount = remainAmount;
+            }
+            if ((origAmount % 0.05) < origAmount)
+            {
+                coins[1] = (int)(origAmount / 0.05);
+                remainAmount = origAmount % 0.05;
+                origAmount = remainAmount;
+            }
+            if ((origAmount % 0.01) < origAmount)
+            {
+                coins[0] = (int)(origAmount / 0.01);
+                remainAmount = origAmount % 0.01;
+            }
+            ShowChange(coins);
+        }
+        private static void ShowChange(int[] arr)
+        {
+            Console.WriteLine($"一共{arr.Length}硬币");
+            if (arr[3] > 0)
+                Console.WriteLine("Number of 25: " + arr[3]);
+            if (arr[2] > 0)
+                Console.WriteLine("Number of 10: " + arr[2]);
+            if (arr[1] > 0)
+                Console.WriteLine("Number of 5: " + arr[1]);
+            if (arr[0] > 0)
+                Console.WriteLine("Number of 1: " + arr[0]);
+        }
+        #endregion
+
+        #region 霍夫曼
+        public class Node
+        {
+            public HuffmanTree data;
+            public Node link;
+            public Node(HuffmanTree newData)
+            {
+                data = newData;
+            }
+        }
+        public class TreeList
+        {
+            private int count = 0;
+            private Node first = null;
+            private static string[] signTable = null;
+            private static string[] keyTable = null;
+            public TreeList(string input)
+            {
+                List<char> list = new List<char>();
+                for (int i = 0; i < input.Length; i++)
+                {
+                    if (!list.Contains(input[i]))
+                        list.Add(input[i]);
+                }
+                signTable = new string[list.Count];
+                keyTable = new string[list.Count];
+            }
+            public string[] GetSignTable()
+            {
+                return signTable;
+            }
+            public string[] GetKeyTable()
+            {
+                return keyTable;
+            }
+            public void AddLetter(string letter)
+            {
+                HuffmanTree hTemp = new HuffmanTree(letter);
+                Node eTemp = new Node(hTemp);
+                if (first == null)
+                    first = eTemp;
+                else
+                {
+                    eTemp.link = first;
+                    first = eTemp;
+
+                    count++;
+                }
+            }
+
+            public void SortTree()
+            {
+                if (first != null && first.link != null)
+                {
+                    Node tmp1;
+                    Node tmp2;
+                    for (tmp1 = first; tmp1 != null; tmp1 = tmp1.link)
+                        for (tmp2 = tmp1.link; tmp2 != null; tmp2 = tmp2.link)
+                        {
+                            if (tmp1.data.GetFreq() > tmp2.data.GetFreq())
+                            {
+                                HuffmanTree tmpHT = tmp1.data;
+                                tmp1.data = tmp2.data;
+                                tmp2.data = tmpHT;
+                            }
+                        }
+                }
+            }
+            public void MergeTree()
+            {
+                if (!(first == null))
+                    if (!(first.link == null))
+                    {
+                        HuffmanTree aTemp = RemoveTree();
+                        HuffmanTree bTemp = RemoveTree();
+                        HuffmanTree sumTemp = new HuffmanTree("x");
+                        sumTemp.SetLeftChild(aTemp);
+                        sumTemp.SetRightChild(bTemp);
+                        sumTemp.SetFreq(aTemp.GetFreq() + bTemp.GetFreq());
+                        InsertTree(sumTemp);
+                    }
+            }
+            public HuffmanTree RemoveTree()
+            {
+                if (!(first == null))
+                {
+                    HuffmanTree hTemp;
+                    hTemp = first.data;
+                    first = first.link;
+                    count--;
+                    return hTemp;
+                }
+                return null;
+            }
+            public void InsertTree(HuffmanTree hTemp)
+            {
+                Node eTemp = new Node(hTemp);
+                if (first == null)
+                    first = eTemp;
+                else
+                {
+                    Node p = first;
+                    while (!(p.link == null))
+                    {
+                        if ((p.data.GetFreq() <= hTemp.GetFreq()) && (p.link.data.GetFreq() >= hTemp.GetFreq()))
+                            break;
+                        p = p.link;
+                    }
+                    eTemp.link = p.link;
+                    p.link = eTemp;
+                }
+                count++;
+            }
+            public int Length()
+            {
+                return count;
+            }
+            /// <summary>
+            /// 链表---计数
+            /// </summary>
+            /// <param name="str"></param>
+            public void AddSign(string str)
+            {
+                if (first == null)
+                {
+                    AddLetter(str);
+                    return;
+                }
+                Node tmp = first;
+                while (tmp != null)
+                {
+                    if (tmp.data.GetSign() == str)
+                    {
+                        tmp.data.IncFreq();
+                        return;
+                    }
+                    tmp = tmp.link;
+                }
+                AddLetter(str);
+            }
+            public static string Translate(string original)
+            {
+                string newStr = "";
+                for (int i = 0; i <= original.Length - 1; i++)
+                {
+                    for (int j = 0; j <= signTable.Length - 1; j++)
+                    {
+                        if (original[i].ToString() == signTable[j])
+                        {
+                            newStr += keyTable[j];
+                        }
+                    }
+                }
+                return newStr;
+            }
+            private static int pos = 0;
+            public static void MakeKey(HuffmanTree tree, string code)
+            {
+                if (tree.GetLeftChild() == null)
+                {
+                    signTable[pos] = tree.GetSign();
+                    keyTable[pos] = code;
+                    pos++;
+                }
+                else
+                {
+                    MakeKey(tree.GetLeftChild(), code + "0");
+                    MakeKey(tree.GetRightChild(), code + "1");
+                }
+            }
+        }
+        public class HuffmanTree
+        {
+            private HuffmanTree leftChild;
+            private HuffmanTree rightChild;
+            private string letter;
+            private int freq;
+            public HuffmanTree(string letter)
+            {
+                this.letter = letter;
+                this.freq = 1;
+            }
+            public void SetLeftChild(HuffmanTree newChild)
+            {
+                leftChild = newChild;
+            }
+            public void SetRightChild(HuffmanTree newChild)
+            {
+                rightChild = newChild;
+            }
+            public void SetLetter(string newLetter)
+            {
+                letter = newLetter;
+            }
+            public void IncFreq()
+            {
+                freq++;
+            }
+            public void SetFreq(int newFreq)
+            {
+                freq = newFreq;
+            }
+            public HuffmanTree GetLeftChild()
+            {
+                return leftChild;
+            }
+            public HuffmanTree GetRightChild()
+            {
+                return rightChild;
+            }
+            public int GetFreq()
+            {
+                return freq;
+            }
+            public string GetSign()
+            {
+                return letter;
+            }
+        }
+        #endregion
+
+        #region 背包
+        public class Carpet : IComparable
+        {
+            private string item;
+            private float val;
+            private int unit;
+            public Carpet(string i, float v, int u)
+            {
+                item = i;
+                val = v;
+                unit = u;
+            }
+            public int CompareTo(Object c)
+            {
+                return (this.val.CompareTo(((Carpet)c).val));
+            }
+            public int GetUnit()
+            {
+                return unit;
+            }
+            public string GetItem()
+            {
+                return item;
+            }
+            public float GetVal()
+            {
+                return val * unit;
+            }
+            public float ItemVal()
+            {
+                return val;
+            }
+        }
+        public class Knapsack
+        {
+            private float quantity;
+            SortedList items = new SortedList();
+            string itemList;
+            public Knapsack(float max)
+            {
+                quantity = max;
+            }
+            public void FillSack(ArrayList objects)
+            {
+                int pos = objects.Count - 1;
+                int totalUnits = 0;
+                float totalVal = 0.0F;
+                int tempTot = 0;
+                while (totalUnits < quantity)
+                {
+                    tempTot += ((Carpet)objects[pos]).GetUnit();
+                    if (tempTot <= quantity)
+                    {
+                        totalUnits += ((Carpet)objects[pos]).GetUnit();
+                        totalVal += ((Carpet)objects[pos]).GetVal();
+                        items.Add(((Carpet)objects[pos]).GetItem(), ((Carpet)objects[pos]).GetUnit());
+                    }
+                    else
+                    {
+                        float tempUnit = quantity - totalUnits;
+                        float tempVal = ((Carpet)objects[pos]).ItemVal() * tempUnit;
+                        totalVal += tempVal;
+                        totalUnits += (int)tempUnit;
+                        items.Add(((Carpet)objects[pos]).GetItem(), tempUnit);
+                    }
+                    pos--;
+                }
+            }
+            public string GetItems()
+            {
+                foreach (Object k in items.GetKeyList())
+                    itemList += k.ToString() + ": " + items[k].
+                    ToString() + " ";
+                return itemList;
+            }
+        }
+
+        #endregion
+    }
+
+}
